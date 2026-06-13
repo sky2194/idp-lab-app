@@ -1,0 +1,49 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1 - Checkout app repo
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # Step 2 - Login to Docker Hub
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # Step 3 - Build and push image
+    - name: Build and push image
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/idp-lab-app:${{ github.sha }} .
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/idp-lab-app:${{ github.sha }}
+
+    # Step 4 - Clone gitops repo
+    - name: Clone gitops repo
+      run: |
+        git clone https://x-access-token:${{ secrets.GITOPS_TOKEN }}@github.com/sky2194/idp-lab-gitops.git
+
+    # Step 5 - Update image tag
+    - name: Update image tag
+      run: |
+        cd idp-lab-gitops
+        sed -i 's|image: .*\/idp-lab-app:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/idp-lab-app:${{ github.sha }}|' apps/hello-world/deployment.yaml
+
+    # Step 6 - Commit and push to gitops repo
+    - name: Push to gitops repo
+      run: |
+        cd idp-lab-gitops
+        git config user.email "github-actions@github.com"
+        git config user.name "github-actions[bot]"
+        git add .
+        git commit -m "update image tag to ${{ github.sha }}"
+        git push
