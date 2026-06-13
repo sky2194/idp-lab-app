@@ -1,0 +1,15 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: idp-lab-app
+  description: IDP Lab Flask application
+  annotations:
+    github.com/project-slug: sky2194/idp-lab-app
+    argocd/app-name: hello-world
+  links:
+  - url: http://localhost:8081
+    title: Live App
+spec:
+  type: service
+  lifecycle: development
+  owner: team-angular
